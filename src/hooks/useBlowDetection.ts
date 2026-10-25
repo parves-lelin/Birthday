@@ -206,14 +206,49 @@ export const useBlowDetection = (onBlow: () => void, enabled: boolean): BlowDete
     }
   }, [stopDetection]);
 
-  // Request mic and resume AudioContext on user interaction when enabled
+  // When cake stage is active, automatically start blow detection (mic was requested on site entry)
+  useEffect(() => {
+    let isCancelled = false;
+    if (enabled) {
+      isBlowingRef.current = false;
+      const init = async () => {
+        if (!isCancelled) {
+          await startDetection();
+        }
+      };
+      init();
+    }
+
+    return () => {
+      isCancelled = true;
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      if (streamRef.current) {
+        try {
+          streamRef.current.getTracks().forEach((t) => t.stop());
+        } catch {
+          // ignore
+        }
+        streamRef.current = null;
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        try {
+          audioContextRef.current.close().catch(() => {});
+        } catch {
+          // ignore
+        }
+        audioContextRef.current = null;
+      }
+    };
+  }, [enabled, startDetection]);
+
+  // Resume suspended AudioContext if already initialized on user gestures
   useEffect(() => {
     if (!enabled) return;
 
     const handleUserGesture = () => {
-      if (!isListening && !permissionError && enabled) {
-        startDetection();
-      }
       if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
         audioContextRef.current.resume().catch(() => {});
       }
@@ -225,26 +260,17 @@ export const useBlowDetection = (onBlow: () => void, enabled: boolean): BlowDete
       window.removeEventListener('click', handleUserGesture);
       window.removeEventListener('touchstart', handleUserGesture);
     };
-  }, [enabled, isListening, permissionError, startDetection]);
+  }, [enabled]);
 
-  // Manage start/stop lifecycle based on `enabled` prop
-  useEffect(() => {
-    if (enabled) {
-      isBlowingRef.current = false;
-      startDetection();
-    } else {
-      stopDetection();
-    }
-
-    return () => {
-      stopDetection();
-    };
-  }, [enabled, startDetection, stopDetection]);
+  const handleExplicitEnableMic = useCallback(async () => {
+    isBlowingRef.current = false;
+    await startDetection();
+  }, [startDetection]);
 
   return {
     permissionError,
-    isListening,
-    micVolume,
-    enableMic: startDetection,
+    isListening: isListening && enabled,
+    micVolume: enabled ? micVolume : 0,
+    enableMic: handleExplicitEnableMic,
   };
 };

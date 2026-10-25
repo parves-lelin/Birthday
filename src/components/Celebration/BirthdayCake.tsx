@@ -487,14 +487,14 @@ export const BirthdayCake: React.FC<BirthdayCakeProps> = ({
               <button
                 type="button"
                 onClick={() => enableMic()}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/70 hover:bg-slate-800 border border-pink-400/40 text-[11px] font-semibold text-pink-300 hover:text-white transition-all cursor-pointer shadow-xs"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-pink-400/40 text-xs font-semibold text-pink-300 hover:text-white transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
               >
                 <span>🎤</span>
-                <span>Enable Mic to Blow Candles</span>
+                <span>Mic Not Active — Click to Enable</span>
               </button>
             ) : permissionError ? (
-              <span className="text-[11px] text-pink-300/70 text-center">
-                Mic not available — tap the candles or cake to blow them out!
+              <span className="text-[11px] text-pink-300/80 text-center bg-slate-900/60 px-3 py-1 rounded-full border border-pink-500/20">
+                Tap any candle or the button below to blow them out! ✨
               </span>
             ) : null}
 
@@ -512,7 +512,7 @@ export const BirthdayCake: React.FC<BirthdayCakeProps> = ({
             </div>
 
             <p className="text-[11px] text-pink-200/60 text-center">
-              Blow directly on your screen or tap any candle to extinguish it
+              Tap the cake, tap each flame, or click the button to extinguish them
             </p>
           </>
         )}

@@ -59,6 +59,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     message: string;
   }>({ type: 'idle', message: '' });
   const [isPlayingMusicPreview, setIsPlayingMusicPreview] = useState(bgMusic.getIsPlaying());
+  const [currentTimestamp] = useState(() => Date.now());
   const isDirtyRef = React.useRef(false);
 
   // Sync external cloud updates into form if user hasn't made unsaved edits
@@ -945,7 +946,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <span className="text-slate-500">Trigger Status:</span>
                   {(() => {
                     const targetMs = new Date(formData.targetDateISO).getTime();
-                    const hasPassed = !isNaN(targetMs) && targetMs <= new Date().getTime();
+                    const hasPassed = !isNaN(targetMs) && targetMs <= currentTimestamp;
                     return (
                       <span className={`font-semibold ${hasPassed ? 'text-emerald-600' : 'text-amber-600'}`}>
                         {hasPassed

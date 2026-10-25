@@ -101,32 +101,76 @@ export default function App() {
       bgMusic.setStartOffset(config.musicStartOffset || 0);
     } else if (!config.musicEnabled) {
       bgMusic.stop();
-      setIsMusicActive(false);
     } else if (config.youtubeUrl) {
       // YouTube is selected; avoid synth overlap
       bgMusic.stop();
     }
   }, [config.musicEnabled, config.musicTrack, config.musicVolume, config.musicStartOffset, config.youtubeUrl]);
 
-  // Auto-play background music on first user gesture (click/touch)
+  // Ask for microphone permission immediately after entering the website
   useEffect(() => {
-    const handleUserInteraction = () => {
-      if (config.musicEnabled && !isMusicActive) {
-        if (!config.youtubeUrl && !bgMusic.getIsPlaying()) {
+    let requested = false;
+    const requestMicPermissionOnEntry = async () => {
+      if (requested || !navigator?.mediaDevices?.getUserMedia) return;
+      requested = true;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
+        });
+        // Permission successfully granted! Release tracks until cake blow stage
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (err) {
+        console.info('Mic permission request on entry:', err);
+      }
+    };
+
+    // Ask immediately on entry
+    requestMicPermissionOnEntry();
+
+    // Trigger on first screen interaction if browser requires user gesture to show prompt
+    const handleEntryInteraction = () => {
+      requestMicPermissionOnEntry();
+    };
+    window.addEventListener('click', handleEntryInteraction, { once: true, passive: true });
+    window.addEventListener('touchstart', handleEntryInteraction, { once: true, passive: true });
+
+    return () => {
+      window.removeEventListener('click', handleEntryInteraction);
+      window.removeEventListener('touchstart', handleEntryInteraction);
+    };
+  }, []);
+
+  // Set music on by default: play automatically on entry and first interaction
+  useEffect(() => {
+    const playDefaultMusic = () => {
+      if (config.musicEnabled && !config.youtubeUrl) {
+        if (!bgMusic.getIsPlaying()) {
           bgMusic.start(config.musicTrack, config.musicVolume, config.musicStartOffset || 0);
         }
         setIsMusicActive(true);
       }
     };
 
-    window.addEventListener('click', handleUserInteraction, { once: false });
-    window.addEventListener('touchstart', handleUserInteraction, { once: false });
+    // Try playing immediately
+    playDefaultMusic();
+
+    // Browser audio autoplay policy: ensure music starts on first user touch/click
+    const handleGesture = () => {
+      playDefaultMusic();
+    };
+
+    window.addEventListener('click', handleGesture, { passive: true });
+    window.addEventListener('touchstart', handleGesture, { passive: true });
 
     return () => {
-      window.removeEventListener('click', handleUserInteraction);
-      window.removeEventListener('touchstart', handleUserInteraction);
+      window.removeEventListener('click', handleGesture);
+      window.removeEventListener('touchstart', handleGesture);
     };
-  }, [config.musicEnabled, config.musicTrack, config.musicVolume, config.musicStartOffset, config.youtubeUrl, isMusicActive]);
+  }, [config.musicEnabled, config.musicTrack, config.musicVolume, config.musicStartOffset, config.youtubeUrl]);
 
   // URL Navigation helper
   const navigateTo = (path: '/admin' | '/') => {
@@ -220,20 +264,6 @@ export default function App() {
     }
   };
 
-  const toggleMusic = () => {
-    if (config.youtubeUrl) {
-      setIsMusicActive((prev) => !prev);
-    } else {
-      if (bgMusic.getIsPlaying()) {
-        bgMusic.stop();
-        setIsMusicActive(false);
-      } else {
-        bgMusic.start(config.musicTrack, config.musicVolume, config.musicStartOffset || 0);
-        setIsMusicActive(true);
-      }
-    }
-  };
-
   // 1. DEDICATED /admin PAGE VIEW
   if (isAdminPage) {
     return (
@@ -291,25 +321,6 @@ export default function App() {
         recipientName={config.recipientName}
         isDark={isDark}
       />
-
-      {/* Floating Background Music Quick Toggle Button */}
-      {config.musicEnabled && (
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={toggleMusic}
-          className={`fixed bottom-5 right-5 z-40 p-3 rounded-full shadow-lg border backdrop-blur-md transition-all cursor-pointer flex items-center justify-center ${
-            isMusicActive
-              ? 'bg-pink-500/90 text-white border-pink-300 shadow-[0_0_15px_rgba(244,63,94,0.5)]'
-              : 'bg-slate-900/80 text-slate-300 border-white/20'
-          }`}
-          title={isMusicActive ? 'Mute background music' : 'Play background music'}
-        >
-          <span className="text-lg">{isMusicActive ? '🎵' : '🔇'}</span>
-        </motion.button>
-      )}
 
       {/* Main Experience Viewport */}
       <main className="relative z-20 max-w-5xl mx-auto px-4 py-4 sm:py-8 min-h-[calc(100vh-90px)] flex flex-col items-center justify-center">

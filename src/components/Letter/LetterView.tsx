@@ -13,8 +13,9 @@ export const LetterView: React.FC<LetterViewProps> = ({
   onReplay,
   onOpenAdmin,
 }) => {
-  const [imageError, setImageError] = useState(false);
+  const [failedPhotoUrl, setFailedPhotoUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const imageError = failedPhotoUrl === config.photoUrl;
 
   const handleShare = () => {
     if (navigator.clipboard) {
@@ -23,10 +24,6 @@ export const LetterView: React.FC<LetterViewProps> = ({
       setTimeout(() => setCopied(false), 2000);
     }
   };
-
-  React.useEffect(() => {
-    setImageError(false);
-  }, [config.photoUrl]);
 
   return (
     <motion.div
@@ -106,7 +103,7 @@ export const LetterView: React.FC<LetterViewProps> = ({
                     src={config.photoUrl}
                     alt="Romantic memory together"
                     referrerPolicy="no-referrer"
-                    onError={() => setImageError(true)}
+                    onError={() => setFailedPhotoUrl(config.photoUrl)}
                     className="w-full h-full object-cover"
                   />
                 ) : (
